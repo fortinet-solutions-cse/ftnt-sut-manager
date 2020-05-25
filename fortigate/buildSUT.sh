@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 # Build the system under test SUT with the ENV variable (to be integrated in Jenkins).
 # 
 #if not set use the calling folder for finding the flavor def and kvm images
@@ -73,3 +73,5 @@ done
 #All good let's dump the virsh.yaml on the output
 
 envsubst < ${FTNT_SUT_FGT_HOME}/flavors/${flavor}.yaml > $JENKINS_HOME/virsh${flavor}.yaml
+
+echo "yaml file describing SUT is at $JENKINS_HOME/virsh${flavor}.yaml"
