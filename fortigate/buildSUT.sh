@@ -2,18 +2,23 @@
 # Build the system under test SUT with the ENV variable (to be integrated in Jenkins).
 # 
 
-## remove any running VM
+## remove any running VM with FGT in its name
 for l in `virsh list --name|grep FGT`
 do
   virsh destroy $l
   virsh undefine $l  --remove-all-storage
 done
-
-cd /home/fortinet/
-
+#if not set use the calling folder for finding the flavor def and kvm images
+[ - z "$JENKINS_HOME" ] && (echo "variable JENKINS_HOME must be set to a place were can write"; exit 2)
 [ -z "$flavor" ] && (echo "variable flavor must be set"; exit 2)
 [ -z "${fgtversion}" ] && (echo "variable VERSION must be set"; exit 2)
+[ -z "${FTNT_SUT_FGT_HOME}" ] && (echo "location of scripts and files is $PWD";FTNT_SUT_FGT_HOME=$PWD)
+[ -z "${BRIDGE}" ] && (echo "BRIDGE not set use docker0";BRIDGE=docker0)
+
+
 export NAME=$flavor"_"$fgtversion
+
+cd ${FTNT_SUT_FGT_HOME}
 ##need a map version to build as the zip images only have build in there name
 build=`jq -r ".[] | select(.version == \"$fgtversion\")| .build" versions-build.json`
 [ -z "$build" ] && (echo "Can't find build for $fgtversion"; exit 2)
@@ -27,24 +32,24 @@ rm -f $JENKINS_HOME/fortios-${NAME}.qcow2 /var/lib/libvirt/images/foslogs.qcow2
 majorv=`echo $fgtversion|awk -F "-" '{print $2}'|awk -F'.' '{print $1}'`
 cd $JENKINS_HOME
 rm -f fortios.qcow2
-unzip /home/fortinet/versions/FGT_VM64_KVM-v${majorv}-build$build-FORTINET.out.kvm.zip
+unzip ${FTNT_SUT_FGT_HOME}/versions/FGT_VM64_KVM-v${majorv}-build$build-FORTINET.out.kvm.zip
 mv fortios.qcow2 fortios-${NAME}.qcow2
 # clean then create the config drive
 rm -rf cfg-drv-fgt
 rm -rf day0.iso
 mkdir -p cfg-drv-fgt/openstack/latest/
 mkdir -p cfg-drv-fgt/openstack/content/
-cp /home/fortinet/flavors/${flavor}.lic cfg-drv-fgt/openstack/content/0000
+cp ${FTNT_SUT_FGT_HOME}/flavors/${flavor}.lic cfg-drv-fgt/openstack/content/0000
 
 # rely on dhcp !!
 ROUTER_IP=192.168.122.1
 ## so you can adapt
-envsubst < /home/fortinet/flavors/${flavor}.conf >cfg-drv-fgt/openstack/latest/user_data
+envsubst < ${FTNT_SUT_FGT_HOME}/flavors/${flavor}.conf >cfg-drv-fgt/openstack/latest/user_data
 genisoimage -publisher "OpenStack Nova 12.0.2" -J -R -V config-2 -o day0.iso cfg-drv-fgt
 virt-install --name ${NAME} --os-variant linux \
 --ram 2048 --disk path=fortios-${NAME}.qcow2,bus=virtio --disk day0.iso,device=cdrom,bus=ide,format=raw \
 --vcpus=2 --os-type=linux --cpu=host --import --noautoconsole --keymap=en-us \
---network=default,model=virtio --network bridge=docker0,model=virtio --network bridge=docker0,model=virtio
+--network=default,model=virtio --network bridge=${BRIDGE},model=virtio --network bridge=${BRIDGE},model=virtio
 ##optionnal add a log disk for long running tests --disk path=/var/lib/libvirt/images/foslogs.qcow2,size=10,bus=virtio \
 
 until (virsh domifaddr ${NAME} |grep vnet0)
@@ -57,17 +62,12 @@ export IP=`virsh domifaddr ${NAME} |grep vnet0 | awk '{print $4}' |awk -F '/' '{
 
 ##wait to have enough ping to avoid testing in the middle of the VM reboots for license
 echo "waiting the vm to be up"
-until (ping -c 15 $IP|grep ' 0% packet loss,')
+until (ping -c 18 $IP|grep ' 0% packet loss,')
 do
- sleep 3
+ sleep 5
  echo "waiting the vm to be up"
 done
 
 #All good let's dump the virsh.yaml on the output
 
-envsubst < /home/fortinet/flavors/${flavor}.yaml > $JENKINS_HOME/virsh${flavor}.yaml
-## implement a timer or let jenkins ?
-
-## to destroy
-# virsh destroy
-# virsh undefine
+envsubst < ${FTNT_SUT_FGT_HOME}/flavors/${flavor}.yaml > $JENKINS_HOME/virsh${flavor}.yaml
