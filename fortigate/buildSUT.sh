@@ -1,6 +1,13 @@
 #!/bin/bash -e
 # Build the system under test SUT with the ENV variable (to be integrated in Jenkins).
 # 
+#if not set use the calling folder for finding the flavor def and kvm images
+[ -z "${JENKINS_HOME}" ] && (echo "variable JENKINS_HOME must be set to a place were can write"; exit 2)
+[ -z "$flavor" ] && (echo "variable flavor must be set"; exit 2)
+[ -z "${fgtversion}" ] && (echo "variable VERSION must be set"; exit 2)
+[ -z "${FTNT_SUT_FGT_HOME}" ] && (echo "location of scripts and files is $PWD";FTNT_SUT_FGT_HOME=$PWD)
+[ -z "${BRIDGE}" ] && (echo "BRIDGE not set use docker0";BRIDGE=docker0)
+
 
 ## remove any running VM with FGT in its name
 for l in `virsh list --name|grep FGT`
@@ -8,13 +15,6 @@ do
   virsh destroy $l
   virsh undefine $l  --remove-all-storage
 done
-#if not set use the calling folder for finding the flavor def and kvm images
-[ - z "$JENKINS_HOME" ] && (echo "variable JENKINS_HOME must be set to a place were can write"; exit 2)
-[ -z "$flavor" ] && (echo "variable flavor must be set"; exit 2)
-[ -z "${fgtversion}" ] && (echo "variable VERSION must be set"; exit 2)
-[ -z "${FTNT_SUT_FGT_HOME}" ] && (echo "location of scripts and files is $PWD";FTNT_SUT_FGT_HOME=$PWD)
-[ -z "${BRIDGE}" ] && (echo "BRIDGE not set use docker0";BRIDGE=docker0)
-
 
 export NAME=$flavor"_"$fgtversion
 
