@@ -17,14 +17,14 @@ export fgtversion=FGT-6.4.0
 
 Optionally define 
 ```
-export FTNT_SUT_FGT_HOME=/home/test/ftnt-sut-manager/
+export FTNT_SUT_FGT_HOME=/home/test/ftnt-sut-manager/fortigate
 export JENKINS_HOME=/home/test/temp
 export BRIDGE=mybridge
 ```
 
 Those will be set by default, if you are in fortigate subfolder:
 ```
-export FTNT_SUT_FGT_HOME=$PWD
+export FTNT_SUT_FGT_HOME=$PWD/fortigate/
 export JENKINS_HOME=$PWD
 export BRIDGE=docker0
 ```
