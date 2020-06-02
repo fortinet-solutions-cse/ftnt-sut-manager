@@ -3,6 +3,7 @@ sut:
   # could be qemu+ssh://ip/system
   ip: $IP
   vmname: $NAME
+  version: $VERSION
   vdom: "myvdom"
   user: "admin"
   # Password is mandatory for vish console access

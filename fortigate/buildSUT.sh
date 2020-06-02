@@ -71,7 +71,7 @@ do
 done
 
 #All good let's dump the virsh.yaml on the output
-
+export VERSION=`echo $fgtversion|awk -F "-" '{print $2}'`
 envsubst < ${FTNT_SUT_FGT_HOME}/flavors/${flavor}.yaml > $JENKINS_HOME/virsh${flavor}.yaml
 
 echo "yaml file describing SUT is at $JENKINS_HOME/virsh${flavor}.yaml"
